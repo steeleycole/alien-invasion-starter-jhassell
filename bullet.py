@@ -38,11 +38,12 @@ class Bullet(Sprite):
 class AlienBullet(Sprite):
     """A class to manage bullets fired from aliens."""
 
-    def __init__(self, ai_settings, screen, alien):
+    def __init__(self, ai_settings, screen, alien, damage=10):
         """Initialize the alien bullet and set its starting position."""
         super().__init__()
         self.screen = screen
         self.ai_settings = ai_settings
+        self.damage = damage
 
         # Create the bullet's rect at (0, 0) and then set correct position
         self.rect = pygame.Rect(0, 0, 5, 15)

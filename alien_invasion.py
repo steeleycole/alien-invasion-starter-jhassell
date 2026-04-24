@@ -3,7 +3,7 @@ import sys
 from settings import Settings
 from ship import Ship
 from bullet import Bullet, AlienBullet
-from aliens import Aliens
+from aliens import Aliens, Captains
 
 # Initialize Pygame
 pygame.init()
@@ -21,6 +21,9 @@ ship = Ship(ai_settings, screen)
 # Create the aliens
 aliens = Aliens(ai_settings, screen)
 
+# Create the captains group (empty initially)
+captains = Captains(ai_settings, screen)
+
 # Create a sprite group to hold bullets
 bullets = pygame.sprite.Group()
 
@@ -32,6 +35,7 @@ ship_alive = True
 game_over = False
 score = 0
 health = 100
+captains_spawned = False
 
 # Colors
 bright_red = (255, 0, 0)
@@ -86,7 +90,7 @@ def _update_alien_bullets():
 
 def _check_bullet_alien_collisions():
     """Check for collisions between bullets and aliens."""
-    global score
+    global score, captains_spawned
     
     # Check for any bullets that have hit aliens
     collisions = pygame.sprite.groupcollide(bullets, aliens, True, True)
@@ -94,9 +98,10 @@ def _check_bullet_alien_collisions():
     # Add points for each alien destroyed
     score += len(collisions) * 100
     
-    # If all aliens are destroyed, create a new fleet
-    if len(aliens) == 0:
-        aliens._create_fleet()
+    # If all aliens are destroyed and captains haven't spawned, spawn them
+    if len(aliens) == 0 and not captains_spawned:
+        captains._create_fleet()
+        captains_spawned = True
 
 def _check_alien_bullet_ship_collisions():
     """Check for collisions between alien bullets and the ship."""
@@ -106,13 +111,29 @@ def _check_alien_bullet_ship_collisions():
     collisions = pygame.sprite.spritecollide(ship, alien_bullets, True)
     
     if collisions:
-        # Lose 10 HP for each bullet hit
-        health -= len(collisions) * 10
+        # Lose health based on the damage of each bullet hit
+        for bullet in collisions:
+            health -= bullet.damage
         
         # Check if health reaches 0
         if health <= 0:
             ship_alive = False
             game_over = True
+
+def _check_bullet_captain_collisions():
+    """Check for collisions between bullets and captains."""
+    global score, captains_spawned
+    
+    # Check for any bullets that have hit captains
+    collisions = pygame.sprite.groupcollide(bullets, captains, True, True)
+    
+    # Add points for each captain destroyed (200 points per captain)
+    score += len(collisions) * 200
+    
+    # If all captains are destroyed, spawn new aliens
+    if len(captains) == 0 and captains_spawned:
+        aliens._create_fleet()
+        captains_spawned = False
 
 def _update_screen():
     """Update images on screen and flip to new screen."""
@@ -129,6 +150,9 @@ def _update_screen():
 
     # Draw aliens
     aliens.blitme()
+
+    # Draw captains
+    captains.blitme()
 
     # Draw bullets
     for bullet in bullets:
@@ -175,9 +199,12 @@ while running:
         ship.update()
         aliens.update()
         aliens.shoot(alien_bullets)
+        captains.update()
+        captains.shoot(alien_bullets)
         _update_bullets()
         _update_alien_bullets()
         _check_bullet_alien_collisions()
+        _check_bullet_captain_collisions()
         _check_alien_bullet_ship_collisions()
     
     _update_screen()
